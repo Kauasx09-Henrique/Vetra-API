@@ -1,0 +1,178 @@
+const pool = require('../config/db');
+const criarAgendamento = async (req, res) => {
+    const { espaco_id, data_inicio, data_fim, metodo_pagamento } = req.body;
+    const usuario_id = req.user.id;
+
+    const comprovante_url = req.file ? req.file.path.replace(/\\/g, "/") : null;
+
+    try {
+        const conflito = await pool.query(
+            `SELECT * FROM agendamentos 
+             WHERE espaco_id = $1 
+             AND status != 'CANCELADO'
+             AND (data_inicio < $3 AND data_fim > $2)`,
+            [espaco_id, data_inicio, data_fim]
+        );
+
+        if (conflito.rows.length > 0) {
+            return res.status(400).json({ msg: 'Horário indisponível para este espaço.' });
+        }
+
+        const espaco = await pool.query('SELECT preco_por_hora FROM espacos WHERE id = $1', [espaco_id]);
+
+        if (espaco.rows.length === 0) {
+            return res.status(404).json({ msg: 'Espaço não encontrado' });
+        }
+
+        const precoHora = parseFloat(espaco.rows[0].preco_por_hora);
+        const inicio = new Date(data_inicio);
+        const fim = new Date(data_fim);
+
+        const horas = Math.abs(fim - inicio) / 36e5;
+        const preco_total = horas * precoHora;
+
+        const newBooking = await pool.query(
+            `INSERT INTO agendamentos 
+            (usuario_id, espaco_id, data_inicio, data_fim, preco_total, metodo_pagamento, comprovante_url) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [usuario_id, espaco_id, data_inicio, data_fim, preco_total, metodo_pagamento, comprovante_url]
+        );
+
+        res.status(201).json(newBooking.rows[0]);
+
+    } catch (err) {
+        console.error("Erro ao criar agendamento:", err);
+        res.status(500).send('Erro no servidor ao criar agendamento');
+    }
+};
+
+const listarAgendamentos = async (req, res) => {
+    try {
+        let query = `
+            SELECT a.*, u.nome as usuario_nome, e.nome as espaco_nome 
+            FROM agendamentos a
+            JOIN usuarios u ON a.usuario_id = u.id
+            JOIN espacos e ON a.espaco_id = e.id
+        `;
+
+        if (req.user.tipo !== 'ADMIN') {
+            query += ` WHERE a.usuario_id = ${req.user.id}`;
+        }
+
+        query += ` ORDER BY a.data_inicio DESC`;
+
+        const agendamentos = await pool.query(query);
+        res.json(agendamentos.rows);
+    } catch (err) {
+        console.error("Erro ao listar:", err);
+        res.status(500).send('Erro ao buscar agendamentos');
+    }
+};
+
+const verificarDisponibilidade = async (req, res) => {
+    const { espaco_id, data } = req.query;
+
+    try {
+        const query = `
+            SELECT data_inicio, data_fim 
+            FROM agendamentos 
+            WHERE espaco_id = $1 
+            AND status != 'CANCELADO'
+            AND Date(data_inicio) = $2
+        `;
+
+        const result = await pool.query(query, [espaco_id, data]);
+
+        // Retorna array de horários ocupados
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao verificar disponibilidade:", err);
+        res.status(500).json({ msg: 'Erro ao verificar disponibilidade' });
+    }
+};
+
+
+
+const atualizarStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    try {
+        const result = await pool.query(
+            'UPDATE agendamentos SET status = $1 WHERE id = $2 RETURNING *',
+            [status, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ msg: 'Agendamento não encontrado' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erro ao atualizar status');
+    }
+};
+
+const gerenciarCancelamento = async (req, res) => {
+    const { id } = req.params;
+    const usuario_id = req.user.id;
+    const { acao } = req.body;
+
+    try {
+        const result = await pool.query(
+            'SELECT * FROM agendamentos WHERE id = $1 AND usuario_id = $2',
+            [id, usuario_id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ msg: 'Agendamento não encontrado.' });
+        }
+
+        const agendamento = result.rows[0];
+        const hoje = new Date();
+        const dataAgendamento = new Date(agendamento.data_inicio);
+
+        const diferencaTempo = dataAgendamento.getTime() - hoje.getTime();
+        const diasRestantes = Math.ceil(diferencaTempo / (1000 * 3600 * 24));
+
+        let novoStatus = '';
+
+
+        if (agendamento.metodo_pagamento !== 'PIX' && acao === 'CANCELAR') {
+            novoStatus = 'CANCELADO';
+        }
+
+        else if (agendamento.metodo_pagamento === 'PIX' && acao === 'REAGENDAR') {
+            if (diasRestantes < 3) {
+                return res.status(400).json({ msg: 'Reagendamento via PIX requer 3 dias de antecedência.' });
+            }
+            novoStatus = 'REAGENDAMENTO_SOLICITADO';
+        }
+
+        else {
+            return res.status(400).json({ msg: 'Ação inválida para este tipo de pagamento.' });
+        }
+
+        await pool.query(
+            'UPDATE agendamentos SET status = $1 WHERE id = $2',
+            [novoStatus, id]
+        );
+
+        res.json({ msg: 'Solicitação realizada com sucesso!', status: novoStatus });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erro ao processar solicitação.');
+    }
+};
+
+
+
+module.exports = {
+    criarAgendamento,
+    listarAgendamentos,
+    verificarDisponibilidade,
+    atualizarStatus,
+    gerenciarCancelamento
+};
