@@ -7,6 +7,7 @@ require('dotenv').config();
 const authRoutes = require('./src/routes/authRoutes');
 const espacoRoutes = require('./src/routes/espacoRoutes');
 const agendamentoRoutes = require('./src/routes/agendamentoRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 app.use(cors());
 app.use(express.json());
 
@@ -14,6 +15,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'))); app.us
 app.use('/espacos', espacoRoutes);
 app.use('/agendamentos', agendamentoRoutes);
 app.use('auth', authRoutes);
+app.use('/usuarios', userRoutes)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

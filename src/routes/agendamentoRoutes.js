@@ -3,6 +3,7 @@ const auth = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const userController = require('../controllers/userController');
 
 const {
     criarAgendamento,
@@ -38,5 +39,8 @@ router.put('/:id', auth, atualizarStatus);
 
 router.get('/', auth, listarAgendamentos);
 router.post('/', auth, upload.single('comprovante'), criarAgendamento);
+
+router.get('/usuarios', userController.getAllUsers);
+router.delete('/usuarios/:id', userController.deleteUser);
 
 module.exports = router;
