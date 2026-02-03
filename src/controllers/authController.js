@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto'); // Necessário para gerar senha aleatória
 
 const register = async (req, res) => {
     const { nome, email, senha, tipo } = req.body;
@@ -59,4 +60,65 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { register, login };
+// --- NOVA FUNÇÃO DE LOGIN GOOGLE ---
+const googleLogin = async (req, res) => {
+    const { email, nome, googleId, foto } = req.body;
+
+    try {
+        // 1. Verifica se o usuário já existe pelo email
+        let userResult = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        let user = userResult.rows[0];
+
+        if (!user) {
+            // === CENÁRIO 1: USUÁRIO NOVO ===
+            // Como sua tabela exige senha_hash, geramos uma senha aleatória segura
+            // O usuário não saberá essa senha (ele entra pelo Google), o que é seguro.
+            const senhaAleatoria = crypto.randomBytes(16).toString('hex');
+            const salt = await bcrypt.genSalt(10);
+            const senhaHash = await bcrypt.hash(senhaAleatoria, salt);
+
+            // Insere salvando google_id e foto
+            const newUser = await pool.query(
+                `INSERT INTO usuarios (nome, email, senha_hash, tipo, google_id, foto) 
+                 VALUES ($1, $2, $3, $4, $5, $6) 
+                 RETURNING *`,
+                [nome, email, senhaHash, 'CLIENTE', googleId, foto]
+            );
+            user = newUser.rows[0];
+        } else {
+            // === CENÁRIO 2: USUÁRIO JÁ EXISTE ===
+            // Se ele já tinha conta normal e agora entrou pelo Google, vinculamos a conta
+            if (!user.google_id) {
+                const updatedUser = await pool.query(
+                    'UPDATE usuarios SET google_id = $1, foto = $2 WHERE email = $3 RETURNING *',
+                    [googleId, foto, email]
+                );
+                user = updatedUser.rows[0];
+            }
+        }
+
+        // 3. Gera o Token JWT para o Frontend
+        const token = jwt.sign(
+            { id: user.id, tipo: user.tipo },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                nome: user.nome,
+                email: user.email,
+                tipo: user.tipo,
+                foto: user.foto // Agora mandamos a foto pro front também!
+            }
+        });
+
+    } catch (err) {
+        console.error("Erro Google Login:", err);
+        res.status(500).send('Erro no servidor ao processar Google Login');
+    }
+};
+
+module.exports = { register, login, googleLogin };
