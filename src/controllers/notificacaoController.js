@@ -34,4 +34,15 @@ const marcarComoLida = async (req, res) => {
     }
 };
 
-module.exports = { listarNotificacoes, marcarComoLida };
+const criarNotificacao = async (usuarioId, mensagem) => {
+    try {
+        await pool.query(
+            'INSERT INTO notificacoes (usuario_id, mensagem) VALUES ($1, $2)',
+            [usuarioId, mensagem]
+        );
+    } catch (err) {
+        console.error('Erro ao criar notificação interna:', err);
+    }
+};
+
+module.exports = { listarNotificacoes, marcarComoLida, criarNotificacao };

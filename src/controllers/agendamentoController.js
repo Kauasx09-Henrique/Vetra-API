@@ -1,4 +1,7 @@
 const pool = require('../config/db');
+const { criarNotificacao } = require('./notificacaoController');
+const { enviarEmailStatus } = require('../config/emailService'); // Importação do serviço de e-mail
+
 const criarAgendamento = async (req, res) => {
     const { espaco_id, data_inicio, data_fim, metodo_pagamento } = req.body;
     const usuario_id = req.user.id;
@@ -88,6 +91,7 @@ const listarAgendamentos = async (req, res) => {
         res.status(500).send('Erro ao buscar agendamentos');
     }
 };
+
 const verificarDisponibilidade = async (req, res) => {
     const { espaco_id, data } = req.query;
 
@@ -102,15 +106,12 @@ const verificarDisponibilidade = async (req, res) => {
 
         const result = await pool.query(query, [espaco_id, data]);
 
-        // Retorna array de horários ocupados
         res.json(result.rows);
     } catch (err) {
         console.error("Erro ao verificar disponibilidade:", err);
         res.status(500).json({ msg: 'Erro ao verificar disponibilidade' });
     }
 };
-
-
 
 const atualizarStatus = async (req, res) => {
     const { id } = req.params;
@@ -126,7 +127,23 @@ const atualizarStatus = async (req, res) => {
             return res.status(404).json({ msg: 'Agendamento não encontrado' });
         }
 
-        res.json(result.rows[0]);
+        const agendamento = result.rows[0];
+
+        // Busca dados do cliente para enviar o e-mail
+        const userResult = await pool.query('SELECT nome, email FROM usuarios WHERE id = $1', [agendamento.usuario_id]);
+        const cliente = userResult.rows[0];
+        const dataFormatada = new Date(agendamento.data_inicio).toLocaleDateString('pt-BR');
+
+        // 🔔 Envia a notificação no painel e por e-mail
+        if (status === 'CONFIRMADO') {
+            await criarNotificacao(agendamento.usuario_id, `Sua reserva para o dia ${dataFormatada} foi CONFIRMADA!`);
+            if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
+        } else if (status === 'CANCELADO') {
+            await criarNotificacao(agendamento.usuario_id, `Sua reserva #${id} foi CANCELADA.`);
+            if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
+        }
+
+        res.json(agendamento);
     } catch (err) {
         console.error(err);
         res.status(500).send('Erro ao atualizar status');
@@ -157,18 +174,15 @@ const gerenciarCancelamento = async (req, res) => {
 
         let novoStatus = '';
 
-
         if (agendamento.metodo_pagamento !== 'PIX' && acao === 'CANCELAR') {
             novoStatus = 'CANCELADO';
         }
-
         else if (agendamento.metodo_pagamento === 'PIX' && acao === 'REAGENDAR') {
             if (diasRestantes < 3) {
                 return res.status(400).json({ msg: 'Reagendamento via PIX requer 3 dias de antecedência.' });
             }
             novoStatus = 'REAGENDAMENTO_SOLICITADO';
         }
-
         else {
             return res.status(400).json({ msg: 'Ação inválida para este tipo de pagamento.' });
         }
@@ -185,14 +199,15 @@ const gerenciarCancelamento = async (req, res) => {
         res.status(500).send('Erro ao processar solicitação.');
     }
 };
+
 const atualizarStatusAgendamento = async (req, res) => {
     // 1. Segurança: Só Admin pode
     if (req.user.tipo !== 'ADMIN') {
         return res.status(403).json({ msg: 'Apenas admins podem alterar status.' });
     }
 
-    const { id } = req.params; // ID do agendamento
-    const { status } = req.body; // Ex: 'CONFIRMADO', 'CANCELADO'
+    const { id } = req.params;
+    const { status } = req.body;
 
     try {
         // 2. Atualiza o status do agendamento
@@ -210,22 +225,21 @@ const atualizarStatusAgendamento = async (req, res) => {
 
         const agendamento = result.rows[0];
 
-        // 3. SE O STATUS FOR "CONFIRMADO", CRIA A NOTIFICAÇÃO
+        // Busca dados do cliente para enviar o e-mail
+        const userResult = await pool.query('SELECT nome, email FROM usuarios WHERE id = $1', [agendamento.usuario_id]);
+        const cliente = userResult.rows[0];
+        const dataFormatada = new Date(agendamento.data_inicio).toLocaleDateString('pt-BR');
+
+        // 3. 🔔 SE O STATUS FOR "CONFIRMADO", CRIA A NOTIFICAÇÃO E MANDA EMAIL
         if (status === 'CONFIRMADO') {
-            const msg = `Seu agendamento para ${new Date(agendamento.data_inicio).toLocaleDateString('pt-BR')} foi confirmado!`;
-            
-            await pool.query(
-                'INSERT INTO notificacoes (usuario_id, agendamento_id, mensagem) VALUES ($1, $2, $3)',
-                [agendamento.usuario_id, id, msg]
-            );
+            await criarNotificacao(agendamento.usuario_id, `Seu agendamento para o dia ${dataFormatada} foi CONFIRMADO!`);
+            if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
         }
-        
-        // Opcional: Notificar cancelamento também
+
+        // 4. 🔔 SE O STATUS FOR "CANCELADO", CRIA A NOTIFICAÇÃO E MANDA EMAIL
         if (status === 'CANCELADO') {
-            await pool.query(
-                'INSERT INTO notificacoes (usuario_id, agendamento_id, mensagem) VALUES ($1, $2, $3)',
-                [agendamento.usuario_id, id, 'Seu agendamento foi cancelado. Entre em contato.']
-            );
+            await criarNotificacao(agendamento.usuario_id, `Seu agendamento #${id} foi cancelado. Entre em contato.`);
+            if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
         }
 
         res.json({ msg: `Status atualizado para ${status}` });
@@ -235,8 +249,6 @@ const atualizarStatusAgendamento = async (req, res) => {
         res.status(500).send('Erro ao atualizar status');
     }
 };
-
-
 
 module.exports = {
     criarAgendamento,
