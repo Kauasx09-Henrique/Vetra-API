@@ -4,5 +4,6 @@ const userController = require('../controllers/userController');
 
 router.get('/', userController.getAllUsers);     
 router.delete('/:id', userController.deleteUser); 
+router.put('/:id/status', userController.atualizarStatusUsuario); // Rota para atualizar o status do usuário (ex: ADMIN/CLIENTE)
 
 module.exports = router;
