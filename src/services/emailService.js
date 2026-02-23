@@ -24,7 +24,7 @@ const enviarEmailStatus = async (para, nome, status, data, id) => {
     const corTextoStatus = status === 'CONFIRMADO' ? '#27ae60' : '#c0392b';
 
     // Link do seu site (mude quando for publicar de verdade)
-    const linkPainel = 'http://localhost:5173/meus-agendamentos';
+const linkPainel = 'https://tullyphoto-paginainical.vercel.app/meus-agendamentos';
 
     const html = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; padding: 40px 10px; margin: 0;">

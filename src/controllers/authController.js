@@ -246,6 +246,10 @@ const redefinirSenha = async (req, res) => {
     }
 };
 
+// MUDAR STATUS DO USUÁRIO (EX: BLOQUEAR/ATIVAR) - OPÇÃO PARA FUTURAS IMPLEMENTAÇÕES
+
+
+
 module.exports = {
     register,
     login,
