@@ -26,12 +26,35 @@ const criarAgendamento = async (req, res) => {
             return res.status(404).json({ msg: 'Espaço não encontrado' });
         }
 
-        const precoHora = parseFloat(espaco.rows[0].preco_por_hora);
+        // Função para checar Feriado ou FDS no Backend
+        const checkFeriadoOuFDS = (data) => {
+            const d = new Date(data);
+            const diaSemana = d.getDay();
+            if (diaSemana === 0 || diaSemana === 6) return true;
+            const dia = String(d.getDate()).padStart(2, '0');
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const dataFormatada = `${mes}-${dia}`;
+            const feriadosFixos = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25'];
+            return feriadosFixos.includes(dataFormatada);
+        };
+
+        // Calculando as taxas no Backend igual fizemos no Frontend
+        let precoBase = parseFloat(espaco.rows[0].preco_por_hora);
+
+        if (checkFeriadoOuFDS(data_inicio)) {
+            precoBase += 50; // Taxa de FDS/Feriado
+        }
+
         const inicio = new Date(data_inicio);
         const fim = new Date(data_fim);
-
         const horas = Math.abs(fim - inicio) / 36e5;
-        const preco_total = horas * precoHora;
+
+        let preco_total = horas * precoBase;
+
+        // Se for crédito, aplica os 10%
+        if (metodo_pagamento === 'CREDITO') {
+            preco_total = preco_total * 1.10;
+        }
 
         const newBooking = await pool.query(
             `INSERT INTO agendamentos 
@@ -47,7 +70,6 @@ const criarAgendamento = async (req, res) => {
         res.status(500).send('Erro no servidor ao criar agendamento');
     }
 };
-
 const listarAgendamentos = async (req, res) => {
     try {
         const usuarioId = req.user.id;
@@ -248,7 +270,7 @@ const bloquearHorario = async (req, res) => {
     }
 
     const { espaco_id, data_inicio, data_fim, motivo } = req.body;
-    const usuario_id = req.user.id; 
+    const usuario_id = req.user.id;
 
     try {
         const conflito = await pool.query(
