@@ -59,8 +59,7 @@ const listarAgendamentos = async (req, res) => {
         if (tipoUsuario === 'ADMIN') {
             query = `
                 SELECT 
-                    a.id, a.data_inicio, a.data_fim, a.status, a.metodo_pagamento, 
-                    a.preco_total::FLOAT as preco_total, a.comprovante as comprovante_url,
+                    a.*, 
                     u.nome as usuario_nome, u.email as usuario_email,
                     e.nome as espaco_nome,
                     e.imagem_url as espaco_imagem_url
@@ -72,7 +71,7 @@ const listarAgendamentos = async (req, res) => {
         } else {
             query = `
                 SELECT 
-                    a.id, a.data_inicio, a.data_fim, a.status, a.metodo_pagamento, a.preco_total::FLOAT as preco_total,
+                    a.*,
                     e.nome as espaco_nome,
                     e.imagem_url as espaco_imagem_url
                 FROM agendamentos a
