@@ -11,11 +11,11 @@ const garantirColunas = async () => {
 };
 
 const listarUsuarios = async (req, res) => {
-    if (req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
+    if (!req.user || req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
     
     try {
         await garantirColunas();
-        const result = await pool.query('SELECT id, nome, email, tipo, ativo FROM usuarios ORDER BY id ASC');
+        const result = await pool.query('SELECT id, nome, email, tipo, ativo, criado_em FROM usuarios ORDER BY id ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).send(err.message);
@@ -23,7 +23,7 @@ const listarUsuarios = async (req, res) => {
 };
 
 const atualizarStatusUsuario = async (req, res) => {
-    if (req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
+    if (!req.user || req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
     
     const { id } = req.params;
     const { ativo } = req.body;
@@ -37,7 +37,7 @@ const atualizarStatusUsuario = async (req, res) => {
 };
 
 const alterarTipoUsuario = async (req, res) => {
-    if (req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
+    if (!req.user || req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
     
     const { id } = req.params;
     const { tipo } = req.body;
@@ -50,4 +50,17 @@ const alterarTipoUsuario = async (req, res) => {
     }
 };
 
-module.exports = { listarUsuarios, atualizarStatusUsuario, alterarTipoUsuario };
+const deletarUsuario = async (req, res) => {
+    if (!req.user || req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
+    
+    const { id } = req.params;
+    
+    try {
+        await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+        res.json({ msg: 'Usuário removido com sucesso' });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+};
+
+module.exports = { listarUsuarios, atualizarStatusUsuario, alterarTipoUsuario, deletarUsuario };
