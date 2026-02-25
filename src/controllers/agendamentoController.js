@@ -1,11 +1,10 @@
 const pool = require('../config/db');
 const { criarNotificacao } = require('./notificacaoController');
-const { enviarEmailStatus } = require('../config/emailService'); // Importação do serviço de e-mail
+const { enviarEmailStatus } = require('../config/emailService');
 
 const criarAgendamento = async (req, res) => {
     const { espaco_id, data_inicio, data_fim, metodo_pagamento } = req.body;
     const usuario_id = req.user.id;
-
     const comprovante_url = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
     try {
@@ -44,7 +43,7 @@ const criarAgendamento = async (req, res) => {
         res.status(201).json(newBooking.rows[0]);
 
     } catch (err) {
-        console.error("Erro ao criar agendamento:", err);
+        console.error(err);
         res.status(500).send('Erro no servidor ao criar agendamento');
     }
 };
@@ -58,23 +57,24 @@ const listarAgendamentos = async (req, res) => {
         let params = [];
 
         if (tipoUsuario === 'ADMIN') {
-            // ADMIN VÊ TUDO + NOMES DOS USUÁRIOS E ESPAÇOS
             query = `
                 SELECT 
-                    a.id, a.data_inicio, a.data_fim, a.status, a.metodo_pagamento, a.comprovante as comprovante_url,
+                    a.id, a.data_inicio, a.data_fim, a.status, a.metodo_pagamento, 
+                    a.preco_total::FLOAT as preco_total, a.comprovante as comprovante_url,
                     u.nome as usuario_nome, u.email as usuario_email,
-                    e.nome as espaco_nome
+                    e.nome as espaco_nome,
+                    e.imagem_url as espaco_imagem_url
                 FROM agendamentos a
                 JOIN usuarios u ON a.usuario_id = u.id
                 JOIN espacos e ON a.espaco_id = e.id
                 ORDER BY a.data_inicio DESC
             `;
         } else {
-            // CLIENTE VÊ SÓ OS DELE
             query = `
                 SELECT 
-                    a.id, a.data_inicio, a.data_fim, a.status, a.metodo_pagamento,
-                    e.nome as espaco_nome
+                    a.id, a.data_inicio, a.data_fim, a.status, a.metodo_pagamento, a.preco_total::FLOAT as preco_total,
+                    e.nome as espaco_nome,
+                    e.imagem_url as espaco_imagem_url
                 FROM agendamentos a
                 JOIN espacos e ON a.espaco_id = e.id
                 WHERE a.usuario_id = $1
@@ -108,7 +108,7 @@ const verificarDisponibilidade = async (req, res) => {
 
         res.json(result.rows);
     } catch (err) {
-        console.error("Erro ao verificar disponibilidade:", err);
+        console.error(err);
         res.status(500).json({ msg: 'Erro ao verificar disponibilidade' });
     }
 };
@@ -129,12 +129,10 @@ const atualizarStatus = async (req, res) => {
 
         const agendamento = result.rows[0];
 
-        // Busca dados do cliente para enviar o e-mail
         const userResult = await pool.query('SELECT nome, email FROM usuarios WHERE id = $1', [agendamento.usuario_id]);
         const cliente = userResult.rows[0];
         const dataFormatada = new Date(agendamento.data_inicio).toLocaleDateString('pt-BR');
 
-        // 🔔 Envia a notificação no painel e por e-mail
         if (status === 'CONFIRMADO') {
             await criarNotificacao(agendamento.usuario_id, `Sua reserva para o dia ${dataFormatada} foi CONFIRMADA!`);
             if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
@@ -201,7 +199,6 @@ const gerenciarCancelamento = async (req, res) => {
 };
 
 const atualizarStatusAgendamento = async (req, res) => {
-    // 1. Segurança: Só Admin pode
     if (req.user.tipo !== 'ADMIN') {
         return res.status(403).json({ msg: 'Apenas admins podem alterar status.' });
     }
@@ -210,7 +207,6 @@ const atualizarStatusAgendamento = async (req, res) => {
     const { status } = req.body;
 
     try {
-        // 2. Atualiza o status do agendamento
         const updateQuery = `
             UPDATE agendamentos 
             SET status = $1 
@@ -225,18 +221,15 @@ const atualizarStatusAgendamento = async (req, res) => {
 
         const agendamento = result.rows[0];
 
-        // Busca dados do cliente para enviar o e-mail
         const userResult = await pool.query('SELECT nome, email FROM usuarios WHERE id = $1', [agendamento.usuario_id]);
         const cliente = userResult.rows[0];
         const dataFormatada = new Date(agendamento.data_inicio).toLocaleDateString('pt-BR');
 
-        // 3. 🔔 SE O STATUS FOR "CONFIRMADO", CRIA A NOTIFICAÇÃO E MANDA EMAIL
         if (status === 'CONFIRMADO') {
             await criarNotificacao(agendamento.usuario_id, `Seu agendamento para o dia ${dataFormatada} foi CONFIRMADO!`);
             if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
         }
 
-        // 4. 🔔 SE O STATUS FOR "CANCELADO", CRIA A NOTIFICAÇÃO E MANDA EMAIL
         if (status === 'CANCELADO') {
             await criarNotificacao(agendamento.usuario_id, `Seu agendamento #${id} foi cancelado. Entre em contato.`);
             if (cliente) await enviarEmailStatus(cliente.email, cliente.nome, status, dataFormatada, id);
@@ -250,11 +243,48 @@ const atualizarStatusAgendamento = async (req, res) => {
     }
 };
 
+const bloquearHorario = async (req, res) => {
+    if (req.user.tipo !== 'ADMIN') {
+        return res.status(403).json({ msg: 'Apenas admins podem bloquear horários.' });
+    }
+
+    const { espaco_id, data_inicio, data_fim, motivo } = req.body;
+    const usuario_id = req.user.id; 
+
+    try {
+        const conflito = await pool.query(
+            `SELECT * FROM agendamentos 
+             WHERE espaco_id = $1 
+             AND status != 'CANCELADO'
+             AND (data_inicio < $3 AND data_fim > $2)`,
+            [espaco_id, data_inicio, data_fim]
+        );
+
+        if (conflito.rows.length > 0) {
+            return res.status(400).json({ msg: 'Horário já possui uma reserva ou bloqueio.' });
+        }
+
+        const newBlock = await pool.query(
+            `INSERT INTO agendamentos 
+            (usuario_id, espaco_id, data_inicio, data_fim, preco_total, metodo_pagamento, status) 
+            VALUES ($1, $2, $3, $4, 0, $5, 'BLOQUEADO') RETURNING *`,
+            [usuario_id, espaco_id, data_inicio, data_fim, motivo || 'BLOQUEIO_ADMIN']
+        );
+
+        res.status(201).json(newBlock.rows[0]);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erro no servidor ao bloquear horário');
+    }
+};
+
 module.exports = {
     criarAgendamento,
     listarAgendamentos,
     verificarDisponibilidade,
     atualizarStatus,
     gerenciarCancelamento,
-    atualizarStatusAgendamento
+    atualizarStatusAgendamento,
+    bloquearHorario
 };
