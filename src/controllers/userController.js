@@ -1,27 +1,23 @@
 const pool = require('../config/db');
 
-// --- SISTEMA DE VERIFICAÇÃO DE CONTATO ---
 
-const enviarCodigoVerificacao = async (req, res) => {
-    const { telefone } = req.body; // Telefone chega limpo (sem máscara) do frontend
+const salvarTelefone = async (req, res) => {
+    const { telefone } = req.body; // Chega limpo do front: "61988887777"
     const usuario_id = req.user.id;
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+    if (!telefone || telefone.length < 10) {
+        return res.status(400).json({ msg: 'Por favor, informe um telefone válido.' });
+    }
 
     try {
         await pool.query(
-            'UPDATE usuarios SET telefone = $1, codigo_verificacao = $2, telefone_verificado = FALSE WHERE id = $3',
-            [telefone, codigo, usuario_id]
+            'UPDATE usuarios SET telefone = $1, telefone_verificado = TRUE WHERE id = $2',
+            [telefone, usuario_id]
         );
 
-        // Simulador de envio (Verificar logs no dashboard da Render)
-        console.log(`\n--- VETRA STUDIO: CÓDIGO DE ACESSO ---`);
-        console.log(`DESTINATÁRIO: ${telefone}`);
-        console.log(`CÓDIGO: ${codigo}`);
-        console.log(`--------------------------------------\n`);
-
-        res.json({ msg: 'Código enviado com sucesso! Confira o console do servidor.' });
+        res.json({ msg: 'Telefone salvo com sucesso!' });
     } catch (err) {
-        res.status(500).json({ msg: 'Erro ao gerar código de segurança.' });
+        res.status(500).json({ msg: 'Erro ao salvar o contato.' });
     }
 };
 
@@ -54,11 +50,8 @@ const validarCodigoTelefone = async (req, res) => {
 
 const listarUsuarios = async (req, res) => {
     if (!req.user || req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Acesso negado' });
-
     try {
-        const result = await pool.query(
-            'SELECT id, nome, email, telefone, telefone_verificado, tipo, ativo, criado_em FROM usuarios ORDER BY id ASC'
-        );
+        const result = await pool.query('SELECT id, nome, email, telefone, tipo, ativo, criado_em FROM usuarios ORDER BY id ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).send(err.message);
@@ -111,6 +104,6 @@ module.exports = {
     atualizarStatusUsuario,
     alterarTipoUsuario,
     deletarUsuario,
-    enviarCodigoVerificacao,
+    salvarTelefone,
     validarCodigoTelefone
 };

@@ -10,7 +10,6 @@ router.put('/:id/tipo', auth, userController.alterarTipoUsuario);
 router.delete('/:id', auth, userController.deletarUsuario);
 
 // Rotas de Verificação de Telefone (Abertas para qualquer usuário logado)
-router.post('/enviar-codigo', auth, userController.enviarCodigoVerificacao);
-router.post('/validar-codigo', auth, userController.validarCodigoTelefone);
+router.post('/salvar-telefone', auth, userController.salvarTelefone);
 
 module.exports = router;
