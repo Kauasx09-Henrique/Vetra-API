@@ -223,21 +223,29 @@ const atualizarStatusAgendamento = async (req, res) => {
 
 const bloquearHorario = async (req, res) => {
     if (req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Apenas admins podem bloquear horários.' });
-    const { espaco_id, data_inicio, data_fim, motivo } = req.body;
+    
+    const { espaco_id, data_inicio, data_fim, motivo } = req.body; 
     const usuario_id = req.user.id;
 
     try {
         const conflito = await pool.query(
-            `SELECT * FROM agendamentos WHERE espaco_id = $1 AND status != 'CANCELADO' AND (data_inicio < $3 AND data_fim > $2)`,
+            `SELECT * FROM agendamentos 
+             WHERE espaco_id = $1 
+             AND status != 'CANCELADO' 
+             AND (data_inicio < $3 AND data_fim > $2)`,
             [espaco_id, data_inicio, data_fim]
         );
-        if (conflito.rows.length > 0) return res.status(400).json({ msg: 'Horário já possui uma reserva ou bloqueio.' });
-
+        
+        if (conflito.rows.length > 0) {
+            return res.status(400).json({ msg: 'Horário já possui uma reserva ou bloqueio.' });
+        }
         const newBlock = await pool.query(
-            `INSERT INTO agendamentos (usuario_id, espaco_id, data_inicio, data_fim, preco_total, metodo_pagamento, status) 
-            VALUES ($1, $2, $3, $4, 0, $5, 'BLOQUEADO') RETURNING *`,
-            [usuario_id, espaco_id, data_inicio, data_fim, motivo || 'BLOQUEIO_ADMIN']
+            `INSERT INTO agendamentos 
+            (usuario_id, espaco_id, data_inicio, data_fim, preco_total, metodo_pagamento, status) 
+            VALUES ($1, $2, $3, $4, 0, 'PIX', 'BLOQUEADO') RETURNING *`,
+            [usuario_id, espaco_id, data_inicio, data_fim]
         );
+        
         res.status(201).json(newBlock.rows[0]);
     } catch (err) {
         console.error(err);
