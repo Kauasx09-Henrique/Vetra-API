@@ -82,8 +82,13 @@ const listarAgendamentos = async (req, res) => {
     try {
         const usuarioId = req.user.id;
         const tipoUsuario = req.user.tipo;
+
+        // Pega a data passada na pesquisa do Frontend (se existir)
+        const dataPesquisa = req.query.data;
+
         let query = "";
         let params = [];
+        let paramCount = 1;
 
         if (tipoUsuario === 'ADMIN') {
             query = `
@@ -91,17 +96,38 @@ const listarAgendamentos = async (req, res) => {
                 FROM agendamentos a
                 JOIN usuarios u ON a.usuario_id = u.id
                 JOIN espacos e ON a.espaco_id = e.id
-                ORDER BY a.data_inicio DESC
+                WHERE 1=1
             `;
+
+            // Se o admin pesquisou por uma data específica, adiciona o filtro
+            if (dataPesquisa) {
+                query += ` AND Date(a.data_inicio) = $${paramCount}`;
+                params.push(dataPesquisa);
+                paramCount++;
+            }
+
+            // Ordena ASC para mostrar as datas mais próximas (hoje, amanhã, depois) primeiro
+            query += ` ORDER BY a.data_inicio ASC`;
+
         } else {
             query = `
                 SELECT a.*, e.nome as espaco_nome, e.imagem_url as espaco_imagem_url
                 FROM agendamentos a
                 JOIN espacos e ON a.espaco_id = e.id
-                WHERE a.usuario_id = $1
-                ORDER BY a.data_inicio DESC
+                WHERE a.usuario_id = $${paramCount}
             `;
-            params = [usuarioId];
+            params.push(usuarioId);
+            paramCount++;
+
+            // Se o cliente pesquisou na própria agenda dele
+            if (dataPesquisa) {
+                query += ` AND Date(a.data_inicio) = $${paramCount}`;
+                params.push(dataPesquisa);
+                paramCount++;
+            }
+
+            // Ordena ASC para o cliente ver as próximas reservas no topo
+            query += ` ORDER BY a.data_inicio ASC`;
         }
 
         const result = await pool.query(query, params);
@@ -223,8 +249,8 @@ const atualizarStatusAgendamento = async (req, res) => {
 
 const bloquearHorario = async (req, res) => {
     if (req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Apenas admins podem bloquear horários.' });
-    
-    const { espaco_id, data_inicio, data_fim, motivo } = req.body; 
+
+    const { espaco_id, data_inicio, data_fim, motivo } = req.body;
     const usuario_id = req.user.id;
 
     try {
@@ -235,7 +261,7 @@ const bloquearHorario = async (req, res) => {
              AND (data_inicio < $3 AND data_fim > $2)`,
             [espaco_id, data_inicio, data_fim]
         );
-        
+
         if (conflito.rows.length > 0) {
             return res.status(400).json({ msg: 'Horário já possui uma reserva ou bloqueio.' });
         }
@@ -245,7 +271,7 @@ const bloquearHorario = async (req, res) => {
             VALUES ($1, $2, $3, $4, 0, 'PIX', 'BLOQUEADO') RETURNING *`,
             [usuario_id, espaco_id, data_inicio, data_fim]
         );
-        
+
         res.status(201).json(newBlock.rows[0]);
     } catch (err) {
         console.error(err);
