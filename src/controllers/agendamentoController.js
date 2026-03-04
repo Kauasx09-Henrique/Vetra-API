@@ -1,6 +1,10 @@
 const pool = require('../config/db');
 const { criarNotificacao } = require('./notificacaoController');
-const { enviarEmailStatus } = require('../config/emailService');
+const {
+    enviarEmailStatus,
+    enviarEmailNovaReservaCliente,
+    enviarEmailNovaReservaAdmin
+} = require('../config/emailService');
 
 const criarAgendamento = async (req, res) => {
     const { espaco_id, data_inicio, data_fim, metodo_pagamento } = req.body;
@@ -8,7 +12,6 @@ const criarAgendamento = async (req, res) => {
     const comprovante_url = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
     try {
-        // 1. Verificar conflitos de horário
         const conflito = await pool.query(
             `SELECT * FROM agendamentos 
              WHERE espaco_id = $1 
@@ -21,11 +24,10 @@ const criarAgendamento = async (req, res) => {
             return res.status(400).json({ msg: 'Horário indisponível para este espaço.' });
         }
 
-        // 2. Função para checar Feriado ou FDS (Lógica de precificação diferenciada)
         const checkFeriadoOuFDS = (data) => {
             const d = new Date(data);
             const diaSemana = d.getDay();
-            if (diaSemana === 0 || diaSemana === 6) return true; // Sábado ou Domingo
+            if (diaSemana === 0 || diaSemana === 6) return true;
             const dia = String(d.getDate()).padStart(2, '0');
             const mes = String(d.getMonth() + 1).padStart(2, '0');
             const dataFormatada = `${mes}-${dia}`;
@@ -33,32 +35,27 @@ const criarAgendamento = async (req, res) => {
             return feriadosFixos.includes(dataFormatada);
         };
 
-        // 3. Cálculo de horas (arredondado para cima para garantir a cobrança do slot)
         const inicio = new Date(data_inicio);
         const fim = new Date(data_fim);
         const horas = Math.ceil(Math.abs(fim - inicio) / 36e5);
         const isFDS = checkFeriadoOuFDS(data_inicio);
 
-        // 4. Lógica de Preços Baseada na Tabela do PDF
         let preco_final = 0;
 
         if (isFDS) {
-            // Preços para Sábado, Domingo e Feriados
             if (horas === 1) preco_final = 200;
             else if (horas === 2) preco_final = 320;
             else if (horas === 3) preco_final = 460;
             else if (horas === 4) preco_final = 600;
-            else preco_final = 1000; // Valor da Diária (> 4h)
+            else preco_final = 1000;
         } else {
-            // Preços para Segunda à Sexta
             if (horas === 1) preco_final = 150;
             else if (horas === 2) preco_final = 240;
             else if (horas === 3) preco_final = 360;
             else if (horas === 4) preco_final = 480;
-            else preco_final = 800; // Valor da Diária (> 4h)
+            else preco_final = 800;
         }
 
-        // 5. Acréscimo de 15% para Cartão de Crédito
         if (metodo_pagamento === 'CREDITO') {
             preco_final = preco_final * 1.15;
         }
@@ -70,7 +67,23 @@ const criarAgendamento = async (req, res) => {
             [usuario_id, espaco_id, data_inicio, data_fim, preco_final, metodo_pagamento, comprovante_url]
         );
 
-        res.status(201).json(newBooking.rows[0]);
+        const reservaInfo = newBooking.rows[0];
+
+        const userResult = await pool.query('SELECT nome, email FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userResult.rows.length > 0) {
+            const cliente = userResult.rows[0];
+            const dataFormatada = new Date(reservaInfo.data_inicio).toLocaleDateString('pt-BR');
+
+            await enviarEmailNovaReservaCliente(cliente.email, cliente.nome, dataFormatada, reservaInfo.id);
+
+            const adminResult = await pool.query("SELECT email FROM usuarios WHERE tipo = 'ADMIN' AND ativo = true");
+            if (adminResult.rows.length > 0) {
+                const emailsAdmins = adminResult.rows.map(admin => admin.email);
+                await enviarEmailNovaReservaAdmin(emailsAdmins, cliente.nome, dataFormatada, reservaInfo.id);
+            }
+        }
+
+        res.status(201).json(reservaInfo);
 
     } catch (err) {
         console.error(err);
@@ -83,7 +96,6 @@ const listarAgendamentos = async (req, res) => {
         const usuarioId = req.user.id;
         const tipoUsuario = req.user.tipo;
 
-        // Pega a data passada na pesquisa do Frontend (se existir)
         const dataPesquisa = req.query.data;
 
         let query = "";
@@ -99,14 +111,12 @@ const listarAgendamentos = async (req, res) => {
                 WHERE 1=1
             `;
 
-            // Se o admin pesquisou por uma data específica, adiciona o filtro
             if (dataPesquisa) {
                 query += ` AND Date(a.data_inicio) = $${paramCount}`;
                 params.push(dataPesquisa);
                 paramCount++;
             }
 
-            // Ordena ASC para mostrar as datas mais próximas (hoje, amanhã, depois) primeiro
             query += ` ORDER BY a.data_inicio ASC`;
 
         } else {
@@ -119,14 +129,12 @@ const listarAgendamentos = async (req, res) => {
             params.push(usuarioId);
             paramCount++;
 
-            // Se o cliente pesquisou na própria agenda dele
             if (dataPesquisa) {
                 query += ` AND Date(a.data_inicio) = $${paramCount}`;
                 params.push(dataPesquisa);
                 paramCount++;
             }
 
-            // Ordena ASC para o cliente ver as próximas reservas no topo
             query += ` ORDER BY a.data_inicio ASC`;
         }
 
