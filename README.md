@@ -1,181 +1,175 @@
-📸 Vetra Studio API
+<div align="center">
 
-API desenvolvida para gerenciar reservas e locações de cenários fotográficos de alto padrão, garantindo controle de agenda, automação de preços e prevenção de conflitos de horários.
+<img src="https://media.giphy.com/media/f3iwJFOVOwuy7K6FFw/giphy.gif" width="800">
 
-O sistema foi projetado para resolver problemas reais de gestão em estúdios fotográficos, oferecendo um backend robusto para gerenciamento de usuários, reservas, pagamentos e administração da agenda.
+# 📸 Vetra Studio API
 
-🚀 Tecnologias Utilizadas
+### Sistema inteligente de gestão de reservas para estúdios fotográficos
 
-Node.js
+API REST desenvolvida para gerenciar **locação de cenários fotográficos**, automatizando agenda, pagamentos e precificação.
 
-Express
+</div>
 
-PostgreSQL
+<br>
 
-JWT (JSON Web Token)
+<div align="center">
 
-Multer
+![Node](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT-black?style=for-the-badge)
+![Multer](https://img.shields.io/badge/File%20Upload-Multer-orange?style=for-the-badge)
+![Nodemailer](https://img.shields.io/badge/Email-Nodemailer-blue?style=for-the-badge)
 
-Nodemailer
+</div>
 
-📖 Sobre o Projeto
+---
 
-O Vetra Studio precisava de uma solução eficiente para gerenciar a agenda de seus cenários e evitar problemas como:
+# 📖 Sobre o Projeto
 
-choque de horários (overbooking)
+O **Vetra Studio** precisava de uma solução confiável para gerenciar a agenda dos seus cenários fotográficos.
 
-controle manual de pagamentos
+Esta API foi criada para resolver problemas comuns na gestão de estúdios:
 
-dificuldade de comunicação com clientes
+- conflito de horários
+- controle manual de reservas
+- dificuldade de calcular valores
+- falta de comunicação automática com clientes
 
-falta de controle administrativo da agenda
+A solução implementa **regras de negócio inteligentes**, garantindo mais segurança e automação para o sistema de reservas.
 
-Esta API resolve esses desafios através de regras de negócio automatizadas e validações em tempo real.
+---
 
-⚙️ Principais Funcionalidades
-Gestão de Usuários
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
-Cadastro de clientes
+# 🚀 Funcionalidades
 
-Login com autenticação JWT
+## 👤 Gestão de Usuários
 
-Diferentes níveis de acesso (CLIENTE e ADMIN)
+- cadastro de clientes
+- login com autenticação **JWT**
+- níveis de acesso (**CLIENTE / ADMIN**)
+- bloqueio de usuários inadimplentes
+- upload de foto de perfil
 
-Bloqueio de usuários inadimplentes
+---
 
-Upload de foto de perfil
+## 📅 Sistema de Agendamentos
 
-Sistema de Agendamentos
+Motor responsável por validar horários e criar reservas.
 
-Criação de reservas
+Funcionalidades:
 
-Validação automática de conflitos de horário
+- criação de reservas
+- validação automática de disponibilidade
+- prevenção de **overbooking**
+- listagem de reservas por data
+- ordenação por proximidade de horário
 
-Listagem de reservas por data
+---
 
-Ordenação por proximidade de agendamento
+## 💰 Precificação Dinâmica
 
-Precificação Dinâmica
+O sistema calcula automaticamente o valor da locação com base em:
 
-O valor da locação é calculado automaticamente com base em:
+- tempo de permanência
+- dia da semana
+- finais de semana
+- feriados
 
-tempo de permanência
+Isso elimina cálculos manuais e reduz erros.
 
-dia da semana
+---
 
-finais de semana
+## 💳 Gestão de Pagamentos
 
-feriados
+Suporte para:
 
-Gestão de Pagamentos
+- PIX
+- crédito
+- débito
 
-Suporte para diferentes formas de pagamento:
+Regras aplicadas automaticamente:
 
-PIX
+- acréscimo de **15% para pagamentos no crédito**
+- registro de comprovantes de pagamento
 
-Cartão de crédito
+---
 
-Cartão de débito
+## 🔒 Bloqueio Administrativo
 
-Regras automáticas:
+Administradores podem bloquear cenários ou horários para:
 
-acréscimo de 15% para pagamentos no crédito
+- manutenção
+- limpeza
+- ensaios externos
+- eventos internos
 
-registro de comprovantes
+Status utilizado no sistema:
 
-Bloqueio Administrativo
-
-Administradores podem bloquear cenários ou horários específicos para:
-
-manutenção
-
-limpeza
-
-ensaios externos
-
-eventos internos
-
-Status especial:
-
+```sql
 BLOQUEADO
 
-Esse status impede que novos agendamentos sejam realizados no período.
+Isso impede novos agendamentos naquele horário.
 
-Comunicação com o Cliente
+🔔 Sistema de Notificações
 
-O sistema envia notificações automáticas quando ocorre alteração no status da reserva:
+Sempre que o status de uma reserva muda, o sistema envia notificações.
 
-confirmação
+Eventos monitorados:
+
+confirmação de reserva
 
 cancelamento
 
 alteração de status
 
-As notificações incluem:
+Notificações incluem:
 
-e-mails automáticos
+envio de e-mails automáticos
 
-notificações internas no painel administrativo
+notificações no painel administrativo
 
-🔗 Estrutura de Endpoints
-Auth
-/auth
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+🧠 Regras de Negócio
 
-Responsável por:
+A API implementa diversas regras para garantir a integridade das reservas:
 
-registro de usuários
+validação de conflitos de horário em tempo real
 
-login
+cálculo automático de valores
 
-autenticação
+diferenciação de tarifas por dia da semana
 
-Usuários
-/usuarios
+controle de cancelamento
 
-Gerenciamento de usuários:
+reagendamento permitido com antecedência mínima de 3 dias para pagamentos via PIX
 
-atualização de perfil
-
-alteração de permissões
-
-upload de foto
-
-Espaços
-/espacos
-
-Gerenciamento dos cenários do estúdio.
-
-Agendamentos
-/agendamentos
-
-Funcionalidades:
-
-criação de reservas
-
-verificação de disponibilidade
-
-mudança de status
-
-bloqueios administrativos
-
+🔗 Endpoints Principais
+Endpoint	Descrição
+/auth	Registro e login de usuários
+/usuarios	Gestão de perfis
+/espacos	Cadastro e listagem de cenários
+/agendamentos	Criação e gerenciamento de reservas
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 📦 Instalação
 
 Clone o repositório:
 
-git clone https://github.com/SEU-USUARIO/vetra-api.git
+git clone https://github.com/Kauasx09-Henrique/Vetra-API.git
 
 Entre na pasta do projeto:
 
-cd vetra-api
+cd Vetra-API
 
 Instale as dependências:
 
 npm install
 🗄 Configuração do Banco de Dados
 
-Certifique-se de que o PostgreSQL esteja rodando.
+Certifique-se de ter o PostgreSQL instalado e rodando.
 
-Execute os comandos abaixo para criar os tipos ENUM necessários:
+Execute os comandos abaixo:
 
 CREATE TYPE status_agendamento AS ENUM ('PENDENTE', 'CONFIRMADO', 'CANCELADO', 'BLOQUEADO');
 
@@ -192,7 +186,7 @@ Modo produção:
 
 npm start
 📂 Estrutura do Projeto
-vetra-api
+Vetra-API
 │
 ├── controllers
 ├── routes
@@ -204,6 +198,19 @@ vetra-api
 ├── app.js
 ├── server.js
 └── package.json
+📊 Exemplo de Requisição
+
+Criar um agendamento:
+
+POST /agendamentos
+{
+  "usuario_id": 1,
+  "espaco_id": 2,
+  "data": "2026-03-10",
+  "hora_inicio": "14:00",
+  "hora_fim": "16:00",
+  "tipo_pagamento": "PIX"
+}
 🔐 Segurança
 
 A API utiliza:
@@ -212,14 +219,39 @@ autenticação via JWT
 
 controle de permissões por middleware
 
-separação de rotas para CLIENTE e ADMIN
+separação de rotas entre CLIENTE e ADMIN
+
+validação de dados antes da criação de reservas
+
+🚀 Melhorias Futuras
+
+integração com gateway de pagamento
+
+sistema de cupons de desconto
+
+dashboard com métricas
+
+notificações via WhatsApp
+
+documentação Swagger
 
 👨‍💻 Autor
 
 Kauã Henrique
 
-GitHub
+💼 Desenvolvedor Backend
+
+🌐 Portfólio
+https://kauahenriquedev.com.br/
+
+🐙 GitHub
 https://github.com/Kauasx09-Henrique
 
-Portfólio
-https://kauahenriquedev.com.br/
+📧 Email
+kauahenriquesx09@gmail.com
+
+<div align="center">
+
+💡 Projeto desenvolvido para demonstrar arquitetura backend, APIs REST e implementação de regras de negócio reais.
+
+</div> ```
