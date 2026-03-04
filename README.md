@@ -10,15 +10,20 @@ API REST desenvolvida para gerenciar **locação de cenários fotográficos**, a
 
 </div>
 
-<br>
+---
 
 <div align="center">
 
-![Node](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+
 ![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+
 ![JWT](https://img.shields.io/badge/Auth-JWT-black?style=for-the-badge)
+
 ![Multer](https://img.shields.io/badge/File%20Upload-Multer-orange?style=for-the-badge)
+
 ![Nodemailer](https://img.shields.io/badge/Email-Nodemailer-blue?style=for-the-badge)
 
 </div>
@@ -27,16 +32,17 @@ API REST desenvolvida para gerenciar **locação de cenários fotográficos**, a
 
 # 📖 Sobre o Projeto
 
-O **Vetra Studio** precisava de uma solução confiável para gerenciar a agenda dos seus cenários fotográficos.
+O **Vetra Studio API** é um backend desenvolvido para gerenciar reservas de cenários fotográficos de forma segura e automatizada.
 
-Esta API foi criada para resolver problemas comuns na gestão de estúdios:
+O sistema foi projetado para resolver desafios reais do dia a dia de estúdios fotográficos:
 
-- conflito de horários
-- controle manual de reservas
-- dificuldade de calcular valores
-- falta de comunicação automática com clientes
+- evitar **conflitos de horários**
+- automatizar **precificação**
+- gerenciar **pagamentos**
+- permitir **bloqueios administrativos**
+- melhorar a **comunicação com clientes**
 
-A solução implementa **regras de negócio inteligentes**, garantindo mais segurança e automação para o sistema de reservas.
+A API implementa regras de negócio inteligentes para tornar o gerenciamento de reservas mais eficiente.
 
 ---
 
@@ -46,17 +52,17 @@ A solução implementa **regras de negócio inteligentes**, garantindo mais segu
 
 ## 👤 Gestão de Usuários
 
-- cadastro de clientes
+- cadastro de usuários
 - login com autenticação **JWT**
 - níveis de acesso (**CLIENTE / ADMIN**)
-- bloqueio de usuários inadimplentes
+- bloqueio de usuários
 - upload de foto de perfil
 
 ---
 
 ## 📅 Sistema de Agendamentos
 
-Motor responsável por validar horários e criar reservas.
+Motor responsável por controlar reservas e evitar conflitos.
 
 Funcionalidades:
 
@@ -64,20 +70,20 @@ Funcionalidades:
 - validação automática de disponibilidade
 - prevenção de **overbooking**
 - listagem de reservas por data
-- ordenação por proximidade de horário
+- ordenação por proximidade
 
 ---
 
 ## 💰 Precificação Dinâmica
 
-O sistema calcula automaticamente o valor da locação com base em:
+O valor da locação é calculado automaticamente com base em:
 
 - tempo de permanência
 - dia da semana
 - finais de semana
 - feriados
 
-Isso elimina cálculos manuais e reduz erros.
+Isso garante mais automação e menos erros manuais.
 
 ---
 
@@ -89,7 +95,7 @@ Suporte para:
 - crédito
 - débito
 
-Regras aplicadas automaticamente:
+Regras automáticas:
 
 - acréscimo de **15% para pagamentos no crédito**
 - registro de comprovantes de pagamento
@@ -98,7 +104,7 @@ Regras aplicadas automaticamente:
 
 ## 🔒 Bloqueio Administrativo
 
-Administradores podem bloquear cenários ou horários para:
+Administradores podem bloquear horários ou cenários para:
 
 - manutenção
 - limpeza
@@ -109,83 +115,111 @@ Status utilizado no sistema:
 
 ```sql
 BLOQUEADO
+```
 
-Isso impede novos agendamentos naquele horário.
+Esse status impede novos agendamentos naquele horário.
 
-🔔 Sistema de Notificações
+---
 
-Sempre que o status de uma reserva muda, o sistema envia notificações.
+## 🔔 Sistema de Notificações
+
+O sistema envia notificações sempre que ocorre alteração no status da reserva.
 
 Eventos monitorados:
 
-confirmação de reserva
-
-cancelamento
-
-alteração de status
+- confirmação
+- cancelamento
+- alteração de status
 
 Notificações incluem:
 
-envio de e-mails automáticos
+- envio de **e-mails automáticos**
+- alertas no painel administrativo
 
-notificações no painel administrativo
+---
 
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
-🧠 Regras de Negócio
+
+# 🧠 Regras de Negócio
 
 A API implementa diversas regras para garantir a integridade das reservas:
 
-validação de conflitos de horário em tempo real
+- validação de conflitos de horário em tempo real
+- cálculo automático de valores
+- diferenciação de tarifas por dia da semana
+- controle de cancelamento
+- reagendamento permitido com **antecedência mínima de 3 dias para pagamentos via PIX**
 
-cálculo automático de valores
+---
 
-diferenciação de tarifas por dia da semana
+# 🔗 Endpoints
 
-controle de cancelamento
+| Endpoint | Descrição |
+|--------|--------|
+| `/auth` | Login e registro de usuários |
+| `/usuarios` | Gestão de perfis |
+| `/espacos` | Cadastro de cenários |
+| `/agendamentos` | Criação e gestão de reservas |
 
-reagendamento permitido com antecedência mínima de 3 dias para pagamentos via PIX
+---
 
-🔗 Endpoints Principais
-Endpoint	Descrição
-/auth	Registro e login de usuários
-/usuarios	Gestão de perfis
-/espacos	Cadastro e listagem de cenários
-/agendamentos	Criação e gerenciamento de reservas
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
-📦 Instalação
+# 📦 Instalação
 
 Clone o repositório:
 
+```bash
 git clone https://github.com/Kauasx09-Henrique/Vetra-API.git
+```
 
 Entre na pasta do projeto:
 
+```bash
 cd Vetra-API
+```
 
 Instale as dependências:
 
+```bash
 npm install
-🗄 Configuração do Banco de Dados
+```
 
-Certifique-se de ter o PostgreSQL instalado e rodando.
+---
 
-Execute os comandos abaixo:
+# 🗄 Configuração do Banco de Dados
 
+Certifique-se de ter o **PostgreSQL instalado e rodando**.
+
+Crie os tipos ENUM necessários:
+
+```sql
 CREATE TYPE status_agendamento AS ENUM ('PENDENTE', 'CONFIRMADO', 'CANCELADO', 'BLOQUEADO');
 
 CREATE TYPE tipo_pagamento AS ENUM ('PIX', 'CREDITO', 'DEBITO');
 
 CREATE TYPE tipo_usuario AS ENUM ('CLIENTE', 'ADMIN');
-▶️ Executando o Projeto
+```
+
+---
+
+# ▶️ Executando o Projeto
 
 Modo desenvolvimento:
 
+```bash
 npm run dev
+```
 
 Modo produção:
 
+```bash
 npm start
-📂 Estrutura do Projeto
+```
+
+---
+
+# 📂 Estrutura do Projeto
+
+```
 Vetra-API
 │
 ├── controllers
@@ -198,11 +232,19 @@ Vetra-API
 ├── app.js
 ├── server.js
 └── package.json
-📊 Exemplo de Requisição
+```
+
+---
+
+# 📊 Exemplo de Requisição
 
 Criar um agendamento:
 
+```http
 POST /agendamentos
+```
+
+```json
 {
   "usuario_id": 1,
   "espaco_id": 2,
@@ -211,47 +253,50 @@ POST /agendamentos
   "hora_fim": "16:00",
   "tipo_pagamento": "PIX"
 }
-🔐 Segurança
+```
+
+---
+
+# 🔐 Segurança
 
 A API utiliza:
 
-autenticação via JWT
+- autenticação via **JWT**
+- controle de permissões por middleware
+- separação de rotas entre **CLIENTE** e **ADMIN**
+- validação de dados antes da criação de reservas
 
-controle de permissões por middleware
+---
 
-separação de rotas entre CLIENTE e ADMIN
+# 🚀 Melhorias Futuras
 
-validação de dados antes da criação de reservas
+- integração com gateway de pagamento
+- sistema de cupons de desconto
+- dashboard com métricas
+- notificações via WhatsApp
+- documentação Swagger
 
-🚀 Melhorias Futuras
+---
 
-integração com gateway de pagamento
+# 👨‍💻 Autor
 
-sistema de cupons de desconto
+**Kauã Henrique**
 
-dashboard com métricas
+💼 Desenvolvedor Backend  
 
-notificações via WhatsApp
-
-documentação Swagger
-
-👨‍💻 Autor
-
-Kauã Henrique
-
-💼 Desenvolvedor Backend
-
-🌐 Portfólio
+🌐 Portfólio  
 https://kauahenriquedev.com.br/
 
-🐙 GitHub
+🐙 GitHub  
 https://github.com/Kauasx09-Henrique
 
-📧 Email
+📧 Email  
 kauahenriquesx09@gmail.com
+
+---
 
 <div align="center">
 
-💡 Projeto desenvolvido para demonstrar arquitetura backend, APIs REST e implementação de regras de negócio reais.
+💡 Projeto desenvolvido para demonstrar **arquitetura backend, APIs REST e implementação de regras de negócio reais.**
 
-</div> ```
+</div>
