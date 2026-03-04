@@ -1,72 +1,225 @@
 📸 Vetra Studio API
-Bem-vindo ao repositório oficial da API do Vetra Studio, o motor de regras de negócio e persistência de dados por trás do nosso sistema de locação de cenários de alto padrão.
 
-📖 Sobre o Projeto
-O Vetra Studio precisava de uma solução robusta para gerenciar a agenda de seus espaços fotográficos e cenários. Esta API foi projetada do zero para resolver desafios reais do dia a dia do estúdio, eliminando o risco de overbooking (choque de horários) e automatizando a precificação.
+API desenvolvida para gerenciar reservas e locações de cenários fotográficos de alto padrão, garantindo controle de agenda, automação de preços e prevenção de conflitos de horários.
 
-Mais do que um simples CRUD de reservas, o sistema conta com inteligência para:
-
-Precificação Dinâmica: O valor da locação é calculado automaticamente com base no tempo de permanência e no dia da semana (aplicando tarifas diferenciadas para sábados, domingos e feriados).
-
-Gestão de Pagamentos: Acréscimo automático de taxas (ex: 15% para pagamentos no cartão de crédito) e registro de pagamentos via PIX.
-
-Bloqueio Administrativo: Administradores podem fechar a agenda de cenários específicos para manutenção, limpeza ou ensaios externos (status BLOQUEADO), impedindo que clientes tentem reservar aquele horário.
-
-Comunicação Ativa: O sistema gera notificações internas no painel e dispara e-mails automáticos para o cliente sempre que o status de uma reserva muda (Confirmado, Cancelado, etc).
+O sistema foi projetado para resolver problemas reais de gestão em estúdios fotográficos, oferecendo um backend robusto para gerenciamento de usuários, reservas, pagamentos e administração da agenda.
 
 🚀 Tecnologias Utilizadas
-O backend foi construído visando performance, segurança e escalabilidade:
 
-Node.js & Express: Arquitetura do servidor e roteamento rápido.
+Node.js
 
-PostgreSQL (pg): Banco de dados relacional forte e tipado, garantindo a integridade financeira e de horários.
+Express
 
-JSON Web Tokens (JWT): Autenticação segura e separação rigorosa entre rotas de Clientes e rotas de Administradores.
+PostgreSQL
 
-Multer: Processamento de uploads (comprovantes de pagamento e fotos de perfil de usuários).
+JWT (JSON Web Token)
 
-Nodemailer: Motor de envio de e-mails transacionais.
+Multer
 
-⚙️ Funcionalidades em Destaque
-[x] Gestão de Usuários: Cadastro, login, bloqueio de inadimplentes e níveis de acesso.
+Nodemailer
 
-[x] Motor de Agendamentos: Validação de conflitos de horário no momento exato do clique.
+📖 Sobre o Projeto
 
-[x] Dashboard Admin: Endpoints dedicados para listar reservas ordenadas por proximidade de data e filtradas por dias específicos.
+O Vetra Studio precisava de uma solução eficiente para gerenciar a agenda de seus cenários e evitar problemas como:
 
-[x] Sistema de Cancelamento: Lógica de reagendamento e regras de prazo (ex: antecedência mínima de 3 dias para reagendar PIX).
+choque de horários (overbooking)
 
-📦 Instalação e Execução Local
-Para rodar este projeto na sua máquina, siga os passos abaixo:
+controle manual de pagamentos
 
-1. Clone o repositório:
+dificuldade de comunicação com clientes
 
-Bash
+falta de controle administrativo da agenda
+
+Esta API resolve esses desafios através de regras de negócio automatizadas e validações em tempo real.
+
+⚙️ Principais Funcionalidades
+Gestão de Usuários
+
+Cadastro de clientes
+
+Login com autenticação JWT
+
+Diferentes níveis de acesso (CLIENTE e ADMIN)
+
+Bloqueio de usuários inadimplentes
+
+Upload de foto de perfil
+
+Sistema de Agendamentos
+
+Criação de reservas
+
+Validação automática de conflitos de horário
+
+Listagem de reservas por data
+
+Ordenação por proximidade de agendamento
+
+Precificação Dinâmica
+
+O valor da locação é calculado automaticamente com base em:
+
+tempo de permanência
+
+dia da semana
+
+finais de semana
+
+feriados
+
+Gestão de Pagamentos
+
+Suporte para diferentes formas de pagamento:
+
+PIX
+
+Cartão de crédito
+
+Cartão de débito
+
+Regras automáticas:
+
+acréscimo de 15% para pagamentos no crédito
+
+registro de comprovantes
+
+Bloqueio Administrativo
+
+Administradores podem bloquear cenários ou horários específicos para:
+
+manutenção
+
+limpeza
+
+ensaios externos
+
+eventos internos
+
+Status especial:
+
+BLOQUEADO
+
+Esse status impede que novos agendamentos sejam realizados no período.
+
+Comunicação com o Cliente
+
+O sistema envia notificações automáticas quando ocorre alteração no status da reserva:
+
+confirmação
+
+cancelamento
+
+alteração de status
+
+As notificações incluem:
+
+e-mails automáticos
+
+notificações internas no painel administrativo
+
+🔗 Estrutura de Endpoints
+Auth
+/auth
+
+Responsável por:
+
+registro de usuários
+
+login
+
+autenticação
+
+Usuários
+/usuarios
+
+Gerenciamento de usuários:
+
+atualização de perfil
+
+alteração de permissões
+
+upload de foto
+
+Espaços
+/espacos
+
+Gerenciamento dos cenários do estúdio.
+
+Agendamentos
+/agendamentos
+
+Funcionalidades:
+
+criação de reservas
+
+verificação de disponibilidade
+
+mudança de status
+
+bloqueios administrativos
+
+📦 Instalação
+
+Clone o repositório:
+
 git clone https://github.com/SEU-USUARIO/vetra-api.git
+
+Entre na pasta do projeto:
+
 cd vetra-api
-2. Instale as dependências:
 
-Bash
+Instale as dependências:
+
 npm install
-3. Configure o Banco de Dados:
-Certifique-se de ter o PostgreSQL rodando. O sistema exige a criação prévia dos tipos Enumerados para funcionar corretamente:
+🗄 Configuração do Banco de Dados
 
-SQL
+Certifique-se de que o PostgreSQL esteja rodando.
+
+Execute os comandos abaixo para criar os tipos ENUM necessários:
+
 CREATE TYPE status_agendamento AS ENUM ('PENDENTE', 'CONFIRMADO', 'CANCELADO', 'BLOQUEADO');
+
 CREATE TYPE tipo_pagamento AS ENUM ('PIX', 'CREDITO', 'DEBITO');
+
 CREATE TYPE tipo_usuario AS ENUM ('CLIENTE', 'ADMIN');
-4. Inicie o servidor:
+▶️ Executando o Projeto
 
-Bash
-# Inicia em modo de desenvolvimento (com auto-restart)
+Modo desenvolvimento:
+
 npm run dev
-🔗 Estrutura de Endpoints (Resumo)
-/auth: Login e Registro de usuários.
 
-/usuarios: Gestão de perfis, alteração de permissões e fotos.
+Modo produção:
 
-/espacos: Cadastro e listagem dos cenários físicos do estúdio.
+npm start
+📂 Estrutura do Projeto
+vetra-api
+│
+├── controllers
+├── routes
+├── middlewares
+├── services
+├── database
+├── uploads
+│
+├── app.js
+├── server.js
+└── package.json
+🔐 Segurança
 
-/agendamentos: Criação de reservas, checagem de disponibilidade, mudança de status e aplicação de bloqueios.
+A API utiliza:
 
-Desenvolvido com excelência para elevar a experiência de gestão do Vetra Studio.
+autenticação via JWT
+
+controle de permissões por middleware
+
+separação de rotas para CLIENTE e ADMIN
+
+👨‍💻 Autor
+
+Kauã Henrique
+
+GitHub
+https://github.com/Kauasx09-Henrique
+
+Portfólio
+https://kauahenriquedev.com.br/
