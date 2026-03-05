@@ -28,5 +28,6 @@ router.get('/disponibilidade', agendamentoController.verificarDisponibilidade);
 router.put('/:id/status', auth, agendamentoController.atualizarStatusAgendamento);
 router.put('/:id/cancelar', auth, agendamentoController.gerenciarCancelamento);
 router.post('/bloquear', auth, agendamentoController.bloquearHorario);
+router.post('/desbloquear', auth, agendamentoController.desbloquearHorario);
 
 module.exports = router;

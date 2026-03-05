@@ -95,7 +95,6 @@ const listarAgendamentos = async (req, res) => {
     try {
         const usuarioId = req.user.id;
         const tipoUsuario = req.user.tipo;
-
         const dataPesquisa = req.query.data;
 
         let query = "";
@@ -287,7 +286,29 @@ const bloquearHorario = async (req, res) => {
     }
 };
 
+const desbloquearHorario = async (req, res) => {
+    if (req.user.tipo !== 'ADMIN') return res.status(403).json({ msg: 'Apenas admins podem desbloquear horários.' });
+
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(
+            `DELETE FROM agendamentos WHERE id = $1 AND status = 'BLOQUEADO' RETURNING *`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ msg: 'Bloqueio não encontrado.' });
+        }
+
+        res.json({ msg: 'Horário desbloqueado com sucesso.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erro ao desbloquear horário');
+    }
+};
+
 module.exports = {
     criarAgendamento, listarAgendamentos, verificarDisponibilidade, atualizarStatus,
-    gerenciarCancelamento, atualizarStatusAgendamento, bloquearHorario
+    gerenciarCancelamento, atualizarStatusAgendamento, bloquearHorario, desbloquearHorario
 };
