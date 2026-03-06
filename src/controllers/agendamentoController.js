@@ -5,6 +5,7 @@ const {
     enviarEmailNovaReservaCliente,
     enviarEmailNovaReservaAdmin
 } = require('../config/emailService');
+const { criarEventoNoGoogle } = require('../config/googleCalendarService');
 
 const criarAgendamento = async (req, res) => {
     const { espaco_id, data_inicio, data_fim, metodo_pagamento } = req.body;
@@ -81,6 +82,16 @@ const criarAgendamento = async (req, res) => {
                 const emailsAdmins = adminResult.rows.map(admin => admin.email);
                 await enviarEmailNovaReservaAdmin(emailsAdmins, cliente.nome, dataFormatada, reservaInfo.id);
             }
+
+            await criarEventoNoGoogle({
+                id: reservaInfo.id,
+                clienteNome: cliente.nome,
+                clienteEmail: cliente.email,
+                data_inicio: reservaInfo.data_inicio,
+                data_fim: reservaInfo.data_fim,
+                espacoId: espaco_id,
+                metodo_pagamento: metodo_pagamento
+            });
         }
 
         res.status(201).json(reservaInfo);
